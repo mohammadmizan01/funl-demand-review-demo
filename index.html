@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Funl Demo — Creator Demand Review &amp; Reserve Decision (Illustrative)</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#14101f;color:#f2eefb}
+header{background:#1f1833;border-bottom:4px solid #f5b81c;padding:22px 28px}
+header h1{margin:0;font-size:26px}
+header p{margin:6px 0 0;color:#c9c0e0;font-size:14px}
+.hint{font-size:13px;color:#c9c0e0;padding:12px 28px 0}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;padding:18px 28px 0}
+.stat{background:#241d3d;border:1px solid #3a2f5e;border-top:4px solid #f5b81c;border-radius:10px;padding:14px}
+.stat b{display:block;font-size:26px;color:#f5b81c}
+.stat span{font-size:13px;color:#c9c0e0}
+.ready{margin:18px 28px 0;background:#241d3d;border:1px solid #3a2f5e;border-radius:10px;padding:14px 16px;font-size:14px}
+.bar{height:10px;background:#3a2f5e;border-radius:6px;margin-top:10px;overflow:hidden}
+.bar i{display:block;height:100%;background:#f5b81c}
+.warn{color:#f5b81c;font-weight:bold}
+.layout{display:grid;grid-template-columns:.9fr 1.1fr;gap:20px;padding:20px 28px 28px;align-items:start}
+.panel{background:#241d3d;border:1px solid #3a2f5e;border-radius:12px;padding:16px}
+.panel h2{margin:0 0 12px;font-size:19px}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.toolbar input,.toolbar select{font-size:14px;padding:8px;border:1px solid #3a2f5e;border-radius:8px;background:#14101f;color:#fff}
+.toolbar input{flex:1;min-width:180px}
+.toolbar label{font-size:13px;display:flex;align-items:center;gap:6px}
+.job{border:1px solid #3a2f5e;border-radius:10px;padding:12px;margin-bottom:10px;cursor:pointer;background:#2a2147}
+.job:hover{border-color:#f5b81c}
+.job.sel{border:2px solid #f5b81c;background:#33265a}
+.job h3{margin:0 0 4px;font-size:16px}
+.job p{margin:0;font-size:13px;color:#c9c0e0}
+.badge{display:inline-block;font-size:12px;padding:2px 8px;border-radius:20px;margin-right:6px}
+.flag{background:#3d1a1a;color:#fca5a5;border:1px solid #7f1d1d}
+.ok{background:#123524;color:#86efac;border:1px solid #166534}
+.met{background:#123524;color:#86efac;border:1px solid #166534}
+.below{background:#3d2a00;color:#fcd34d;border:1px solid #92400e}
+.detail h2{margin:0 0 4px;font-size:21px}
+.detail .meta{font-size:13px;color:#c9c0e0;margin-bottom:12px}
+.bid{width:100%;border-collapse:collapse;font-size:14px;margin:10px 0}
+.bid th{text-align:left;border-bottom:2px solid #3a2f5e;padding:6px}
+.bid td{border-bottom:1px solid #3a2f5e;padding:6px}
+.flagbox{background:#3d1a1a;border:1px solid #7f1d1d;border-radius:10px;padding:12px;font-size:14px;margin:12px 0}
+.flagbox b{color:#fca5a5}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+button.act{font-size:14px;padding:9px 14px;border-radius:8px;cursor:pointer;border:1px solid #f5b81c}
+button.primary{background:#f5b81c;color:#14101f;font-weight:bold}
+button.ghost{background:transparent;color:#f5b81c}
+button:disabled{opacity:.45;cursor:not-allowed}
+.err{color:#fca5a5;font-size:13px;margin-top:8px}
+.total{font-size:20px;margin:12px 0}
+.total b{color:#f5b81c}
+input[type=range]{width:100%}
+footer{padding:0 28px 28px;font-size:13px;color:#c9c0e0}
+#loading{padding:40px 28px;color:#c9c0e0}
+@media(max-width:900px){.layout{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<header>
+<h1>Funl Demo — Creator Demand Review &amp; Reserve Decision (Illustrative)</h1>
+<p>Proposed events backed by real fan demand — before a creator commits, charges fans, or cancels.</p>
+</header>
+<p class="hint">Click a proposed Funl to review it. Move the reserve slider to see go / no-go change instantly. Approve only when the reserve is met.</p>
+<div id="loading">Loading proposed Funls…</div>
+<div id="app" style="display:none">
+<div class="stats" id="stats"></div>
+<div class="ready" id="ready"></div>
+<div class="layout">
+<aside class="panel detail" id="detail"></aside>
+<section class="panel">
+<h2>Proposed Funls</h2>
+<div class="toolbar">
+<input id="q" type="search" placeholder="Search event or type" oninput="setQuery(this.value)">
+<select id="tp" onchange="setType(this.value)">
+<option>All types</option><option>Concert</option><option>Meet-and-greet</option><option>Workshop</option><option>Camp</option>
+</select>
+<label><input type="checkbox" id="fo" onchange="setFlagged(this.checked)"> Flagged only</label>
+</div>
+<div id="jobList"></div>
+<div id="empty" style="display:none;color:#c9c0e0">No Funls match these filters.</div>
+<button class="act ghost" onclick="simulateFail()">Simulate API failure</button>
+<div class="err" id="fail"></div>
+</section>
+</div>
+</div>
+<footer>
+Demo data only — no real creators, fans, bids, payments or charges are processed. No integration with Funl. This is an illustrative creator review workflow, not Funl's product. Fans are only charged in Funl's real product when they win and the hidden reserve is met; nothing is charged here.
+</footer>
+<script>
+const JOBS=[
+{id:'F-01',title:'Rooftop Listening Party',type:'Concert',reserve:1200,status:'pending',flag:null,bids:[120,95,150,80,110,90,130,75]},
+{id:'F-02',title:'Listening Party for 10 Fans',type:'Concert',reserve:800,status:'pending',flag:'Below reserve: backed $420 of $800 — gap $380. Do not approve yet.',bids:[90,70,120,60,80]},
+{id:'F-03',title:'Day in the Studio',type:'Workshop',reserve:900,status:'pending',flag:null,bids:[150,200,180,160,220]},
+{id:'F-04',title:'Athlete Camp for 12 Fans',type:'Camp',reserve:1500,status:'pending',flag:'Bidding stalled: no new bids in 4 days. Promote again or extend before deciding.',bids:[200,180,150,120]},
+{id:'F-05',title:'VIP Show & Dinner',type:'Meet-and-greet',reserve:1000,status:'pending',flag:null,bids:[250,220,200,180,170]},
+{id:'F-06',title:'Honky Tonkin’ on Broadway',type:'Meet-and-greet',reserve:1000,status:'pending',flag:'Bid concentration: one $500 bid is 77% of backed value. One fan dropping out changes the decision.',bids:[500,60,40,50]},
+{id:'F-07',title:'Private Songwriting Workshop',type:'Workshop',reserve:600,status:'pending',flag:null,bids:[120,110,130,100,150]},
+{id:'F-08',title:'Spirits & Stories Evening',type:'Concert',reserve:1100,status:'pending',flag:null,bids:[180,160,200,190,170,150]}
+];
+let selectedId='F-01',query='',typeFilter='All types',flaggedOnly=false;
+const money=n=>'$'+n.toLocaleString('en-US');
+const total=j=>j.bids.reduce((s,x)=>s+x,0);
+const met=j=>total(j)>=j.reserve;
+function filtered(){return JOBS.filter(j=>{
+if(typeFilter!=='All types'&&j.type!==typeFilter)return false;
+if(flaggedOnly&&!j.flag)return false;
+if(query&&!(j.title+' '+j.type).toLowerCase().includes(query.toLowerCase()))return false;
+return true;});}
+function renderStats(){
+const open=JOBS.filter(j=>j.flag&&j.status!=='rejected').length;
+const val=JOBS.filter(j=>j.status!=='rejected').reduce((s,j)=>s+total(j),0);
+const appr=JOBS.filter(j=>j.status==='approved').length;
+const metCount=JOBS.filter(j=>met(j)).length;
+document.getElementById('stats').innerHTML=
+'<div class="stat"><b>'+JOBS.length+'</b><span>Proposed Funls</span></div>'+
+'<div class="stat"><b>'+metCount+'</b><span>Reserve met</span></div>'+
+'<div class="stat"><b>'+money(val)+'</b><span>Total backed (demo)</span></div>'+
+'<div class="stat"><b>'+open+'</b><span>Flagged for review</span></div>';
+const pct=Math.round(appr/JOBS.length*100);
+document.getElementById('ready').innerHTML=
+'<b>Go readiness:</b> '+appr+' of '+JOBS.length+' approved · '+open+' flagged still open'+
+(open>0?'<div class="warn">Resolve flagged Funls before approving or charging fans.</div>':'<div>All flags resolved — Funls are ready to go.</div>')+
+'<div class="bar"><i style="width:'+pct+'%"></i></div>';
+}
+function renderList(){
+const list=filtered();
+document.getElementById('empty').style.display=list.length?'none':'block';
+document.getElementById('jobList').innerHTML=list.map(j=>{
+const t=total(j),pct=Math.min(100,Math.round(t/j.reserve*100));
+return '<div class="job '+(j.id===selectedId?'sel':'')+'" onclick="selectJob(\''+j.id+'\')">'+
+'<h3>'+j.id+' — '+j.title+'</h3>'+
+'<p>'+j.type+' · Backed '+money(t)+' of '+money(j.reserve)+' reserve · '+pct+'% · '+j.bids.length+' bids</p>'+
+'<p style="margin-top:6px"><span class="badge '+(met(j)?'met':'below')+'">'+(met(j)?'Reserve met':'Below reserve')+'</span>'+
+(j.flag?'<span class="badge flag">Flagged</span>':'<span class="badge ok">No flag</span>')+
+'<span class="badge">'+j.status+'</span></p></div>';}).join('');
+}
+function renderDetail(){
+const j=JOBS.find(x=>x.id===selectedId),t=total(j),pct=Math.min(100,Math.round(t/j.reserve*100));
+let rows=j.bids.map((b,i)=>'<tr><td>Fan '+(i+1)+'</td><td>'+money(b)+'</td><td>'+(b>=150?'High':'Standard')+'</td></tr>').join('');
+document.getElementById('detail').innerHTML=
+'<h2>'+j.id+' — '+j.title+'</h2>'+
+'<div class="meta">'+j.type+' · '+j.bids.length+' fan bids · Status: '+j.status+'</div>'+
+'<div><b>Hidden reserve (creator only): '+money(j.reserve)+'</b> — fans do not see this number in the real product.</div>'+
+'<div style="margin:12px 0"><label>Try a different reserve: <b id="rv">'+money(j.reserve)+'</b></label><input type="range" min="200" max="2500" step="50" value="'+j.reserve+'" oninput="previewReserve(this.value)"></div>'+
+'<div class="total">Backed: <b>'+money(t)+'</b> · Reserve: '+money(j.reserve)+' · '+pct+'% · '+(met(j)?'GO — reserve met':'NO-GO — reserve not met')+'</div>'+
+'<table class="bid"><tr><th>Bidder</th><th>Bid</th><th>Level</th></tr>'+rows+'</table>'+
+(j.flag?'<div class="flagbox"><b>Flag — needs review:</b> '+j.flag+'</div>':'<div class="flagbox" style="background:#123524;border-color:#166534"><b style="color:#86efac">No open flag</b> — demand looks clear for this Funl.</div>')+
+'<div class="actions">'+
+'<button class="act primary" '+(met(j)?'':'disabled')+' onclick="approve()">Approve event — go</button>'+
+'<button class="act ghost" onclick="markReviewed()">Mark reviewed</button>'+
+'<button class="act ghost" onclick="reject()">Cancel Funl</button>'+
+'<button class="act ghost" onclick="download()">Download demand summary</button>'+
+'</div>'+
+(!met(j)?'<div class="err">Approve is disabled while below reserve — fans are not charged in this demo.</div>':'')+
+'<div class="err" id="derr"></div>';
+}
+function render(){renderStats();renderList();renderDetail();}
+function selectJob(id){selectedId=id;render();}
+function setQuery(v){query=v;renderList();}
+function setType(v){typeFilter=v;renderList();}
+function setFlagged(v){flaggedOnly=v;renderList();}
+function cur(){return JOBS.find(x=>x.id===selectedId);}
+function previewReserve(v){const j=cur(); document.getElementById('rv').textContent=money(Number(v)); j.reserve=Number(v); renderStats(); const d=document.getElementById('detail'); /* keep slider value after re-render by re-rendering detail */ renderDetail(); const s=document.querySelector('#detail input[type=range]'); if(s) s.value=v;}
+function markReviewed(){const j=cur(); if(j.status!=='rejected')j.status='reviewed'; render();}
+function approve(){const j=cur(); if(!met(j))return; j.status='approved'; render();}
+function reject(){cur().status='rejected'; render();}
+function download(){
+const j=cur(),t=total(j);
+let txt='DEMAND SUMMARY (DEMO DATA ONLY)\nFunl: '+j.id+' — '+j.title+'\nType: '+j.type+'\nReserve: '+money(j.reserve)+'\nBacked: '+money(t)+' from '+j.bids.length+' bids\nDecision: '+(met(j)?'GO — reserve met':'NO-GO — reserve not met')+'\nFlag: '+(j.flag?j.flag:'none')+'\nStatus: '+j.status+'\n\nDemo data only — no real fans, bids or payments. Not Funl\'s product.';
+const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([txt],{type:'text/plain'})); a.download='funl-demand-summary-'+j.id+'.txt'; a.click(); URL.revokeObjectURL(a.href);
+}
+function simulateFail(){document.getElementById('fail').innerHTML='Demo API failed to load bids. <button class="act ghost" onclick="retryLoad()">Retry</button>';}
+function retryLoad(){document.getElementById('fail').textContent=''; render();}
+const _orig=renderDetail;
+renderDetail=function(){
+_orig();
+const j=cur();
+if(j.flag){
+const box=document.querySelector('#detail .flagbox');
+if(box){const b=document.createElement('button'); b.className='act ghost'; b.textContent='Resolve flag'; b.style.marginTop='8px'; b.onclick=function(){j.flag=null; render();}; box.appendChild(document.createElement('br')); box.appendChild(b);}
+}
+};
+window.addEventListener('load',()=>{setTimeout(()=>{document.getElementById('loading').style.display='none'; document.getElementById('app').style.display='block'; render();},900);});
+</script>
+</body>
+</html>
